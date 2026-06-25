@@ -124,9 +124,14 @@ body {
 }
 
 .enemy-monster-card {
-    font-size: 5rem;
-    color: #ff3366;
-    filter: drop-shadow(0 0 15px rgba(255, 46, 147, 0.8));
+    width: 145px;
+    height: 145px;
+    background-image: url('enemy.jpg');
+    background-size: 300% 400%;
+    background-position: 0% 0%;
+    background-repeat: no-repeat;
+    border: 2px solid var(--ff-border-light);
+    box-shadow: 0 0 15px rgba(255, 46, 147, 0.4);
     animation: floatEnemy 3s infinite ease-in-out;
 }
 

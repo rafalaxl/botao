@@ -27,7 +27,8 @@ const statDmg = document.getElementById('statDmg');
 const statCrits = document.getElementById('statCrits');
 
 // Variáveis de Estado do Jogo
-let bossMaxHp = 10000;
+let enemyLevel = 1;
+let bossMaxHp = 10;
 let bossHp = bossMaxHp;
 let combo = 0;
 let comboTimer = null;
@@ -35,6 +36,21 @@ let specialProgress = 0;
 let totalHits = 0;
 let totalDamage = 0;
 let critHits = 0;
+
+// Banco de Dados de Estágios do Inimigo (Baseado na spritesheet de 10 levels)
+const enemyStages = [
+    { name: "Ovo Dragão (Lvl 1)", baseHp: 10, bgSize: "300% 400%", bgPos: "0% 0%" },
+    { name: "Cria de Dragão (Lvl 2)", baseHp: 150, bgSize: "300% 400%", bgPos: "50% 0%" },
+    { name: "Pequeno Wyrm (Lvl 3)", baseHp: 2250, bgSize: "300% 400%", bgPos: "100% 0%" },
+    { name: "Dragão Silvestre (Lvl 4)", baseHp: 33750, bgSize: "300% 400%", bgPos: "0% 33.33%" },
+    { name: "Dragão Montanhês (Lvl 5)", baseHp: 506250, bgSize: "300% 400%", bgPos: "50% 33.33%" },
+    { name: "Dragão de Lava (Lvl 6)", baseHp: 7593750, bgSize: "300% 400%", bgPos: "100% 33.33%" },
+    { name: "Tiamat Jovem (Lvl 7)", baseHp: 113906250, bgSize: "300% 400%", bgPos: "0% 66.66%" },
+    { name: "Ancient Wyrm (Lvl 8)", baseHp: 1708593750, bgSize: "300% 400%", bgPos: "50% 66.66%" },
+    { name: "Double-Headed Drake (Lvl 9)", baseHp: 25628906250, bgSize: "300% 400%", bgPos: "100% 66.66%" },
+    { name: "The Grand Wyrm (Lvl 10)", baseHp: 384433593750, bgSize: "200% 400%", bgPos: "0% 100%" },
+    { name: "Aetherion (Lvl 11 - Final)", baseHp: 5766503906250, bgSize: "200% 400%", bgPos: "100% 100%" }
+];
 
 // Estado do ATB (Active Time Battle)
 let atbProgress = 0;
@@ -237,6 +253,63 @@ function incrementCombo() {
     }, 1800);
 }
 
+// Carregar Inimigo e Sprite correspondente ao Nível
+function loadEnemy() {
+    let stageIndex = Math.min(enemyLevel - 1, enemyStages.length - 1);
+    let stage = enemyStages[stageIndex];
+    
+    // Calcula HP máximo dinamicamente: triplicando a anterior vezes 5 (* 15)
+    bossMaxHp = stage.baseHp;
+    if (enemyLevel > enemyStages.length) {
+        bossMaxHp = enemyStages[enemyStages.length - 1].baseHp * Math.pow(15, enemyLevel - enemyStages.length);
+    }
+    
+    bossHp = bossMaxHp;
+    
+    // Nome do dragão correspondente
+    let bossName = stage.name;
+    if (enemyLevel > enemyStages.length) {
+        bossName = `Aetherion Omega (Lvl ${enemyLevel})`;
+    }
+    
+    // Atualiza título e texto de HP na UI
+    const bossTitle = document.getElementById('bossTitle') || document.querySelector('.boss-title');
+    if (bossTitle) {
+        bossTitle.innerText = `${bossName}`;
+    }
+    
+    bossHpBar.style.width = '100%';
+    bossHpText.innerText = `${Math.ceil(bossHp).toLocaleString()} / ${bossMaxHp.toLocaleString()}`;
+    
+    // Atualiza o background da spritesheet do boss
+    enemyCard.style.backgroundSize = stage.bgSize;
+    enemyCard.style.backgroundPosition = stage.bgPos;
+    
+    addLog(`Um novo inimigo surgiu: ${bossName} com ${bossMaxHp.toLocaleString()} HP!`, "system");
+    showBattleMessage(`${bossName} entrou na arena!`);
+}
+
+// Controla dedução de HP e level up do dragão
+function handleBossDamage(damage) {
+    bossHp -= damage;
+    if (bossHp <= 0) {
+        bossHp = 0;
+        enemyLevel++;
+        addLog(`⚔️ O Dragão foi derrotado! Level Up! Próximo nível: Lvl ${enemyLevel}`, "git");
+        showBattleMessage(`O Dragão foi derrotado! Level Up!`);
+        triggerFlash();
+        setTimeout(() => {
+            loadEnemy();
+        }, 1500);
+    } else {
+        // Atualiza barras normais
+        const hpPercent = (bossHp / bossMaxHp) * 100;
+        bossHpBar.style.width = `${hpPercent}%`;
+        bossHpText.innerText = `${Math.ceil(bossHp).toLocaleString()} / ${bossMaxHp.toLocaleString()}`;
+    }
+}
+
+
 // Sistema ATB Automático
 function updateATB() {
     if (!atbReady) {
@@ -289,7 +362,8 @@ function executeAttack(e) {
     totalHits++;
 
     const isCrit = Math.random() < 0.25;
-    let damage = Math.floor(Math.random() * 80) + 120; // 120-200 base
+    // Dano escala multiplicando por 15 a cada nível
+    let damage = Math.floor((Math.random() * 80 + 120) * Math.pow(15, enemyLevel - 1));
     
     if (isCrit) {
         damage = Math.floor(damage * 2.2);
@@ -300,26 +374,8 @@ function executeAttack(e) {
         damage = Math.floor(damage * (1 + (combo * 0.05)));
     }
 
-    // Deduz HP do Boss
-    bossHp -= damage;
-    if (bossHp <= 0) {
-        bossHp = 0;
-        addLog("⚔️ Conflict Dragon derrotado! Renascendo...", "git");
-        showBattleMessage("Conflict Dragon foi derrotado!");
-        triggerFlash();
-        setTimeout(() => {
-            bossHp = bossMaxHp;
-            bossHpBar.style.width = '100%';
-            bossHpText.innerText = `${bossMaxHp.toLocaleString()} / ${bossMaxHp.toLocaleString()}`;
-            showBattleMessage("Conflict Dragon ressuscitou!");
-            addLog("Um novo Dragão surgiu na arena!", "system");
-        }, 1500);
-    }
-
-    // Atualiza barras
-    const hpPercent = (bossHp / bossMaxHp) * 100;
-    bossHpBar.style.width = `${hpPercent}%`;
-    bossHpText.innerText = `${Math.ceil(bossHp).toLocaleString()} / ${bossMaxHp.toLocaleString()}`;
+    // Deduz HP do Boss usando a função comum
+    handleBossDamage(damage);
 
     incrementCombo();
     totalDamage += damage;
@@ -388,13 +444,8 @@ function executeSpecial(e) {
     btnGitPush.classList.add('locked');
     btnGitPush.classList.remove('active');
 
-    const specialDmg = 3500;
-    bossHp -= specialDmg;
-    if (bossHp < 0) bossHp = 0;
-
-    const hpPercent = (bossHp / bossMaxHp) * 100;
-    bossHpBar.style.width = `${hpPercent}%`;
-    bossHpText.innerText = `${Math.ceil(bossHp).toLocaleString()} / ${bossMaxHp.toLocaleString()}`;
+    const specialDmg = Math.floor(3500 * Math.pow(15, enemyLevel - 1));
+    handleBossDamage(specialDmg);
 
     // Logs, Som e Sprite JRPG
     addLog("🚀 EXECUTANDO: git push -u origin main", "git");
@@ -588,3 +639,6 @@ enemyCard.addEventListener('click', (e) => {
         spawnParticles(clientX, clientY, 'special');
     }
 });
+
+// Inicialização: carrega o primeiro Boss
+loadEnemy();
