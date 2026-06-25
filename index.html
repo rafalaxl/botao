@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RPG Combat Clicker | Botão de Ataque Animado</title>
+    <!-- Google Fonts: Inter e Orbitron para um ar de jogo moderno/cyberpunk -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
+    <!-- FontAwesome para ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="game-container" id="gameContainer">
+        <!-- Canvas para partículas de impacto neon -->
+        <canvas id="particleCanvas"></canvas>
+
+        <!-- Efeito de Flash de Impacto -->
+        <div class="flash-overlay" id="flashOverlay"></div>
+
+        <!-- Cabeçalho / Título do Jogo -->
+        <header class="game-header">
+            <h1 class="logo"><i class="fa-solid fa-crosshairs text-primary"></i> CRITICAL<span>STRIKE</span></h1>
+            <p class="subtitle">Desafio do Botão de Ataque & Git Push</p>
+        </header>
+
+        <main class="game-layout">
+            <!-- Coluna da Arena (Inimigo + Botão) -->
+            <section class="arena-section">
+                <!-- Status do Boss/Inimigo -->
+                <div class="boss-card">
+                    <div class="boss-info">
+                        <span class="boss-level">Lvl 99</span>
+                        <h2 class="boss-name">Dragão da Fragmentação (Git-Merge-Conflict)</h2>
+                    </div>
+                    <div class="hp-bar-container">
+                        <div class="hp-bar" id="bossHpBar" style="width: 100%;"></div>
+                        <span class="hp-text" id="bossHpText">10,000 / 10,000 HP</span>
+                    </div>
+                </div>
+
+                <!-- Arena de Impacto e Números Flutuantes -->
+                <div class="interactive-arena" id="interactiveArena">
+                    <!-- Combo Counter -->
+                    <div class="combo-counter" id="comboCounter">
+                        <span class="combo-number" id="comboNumber">0</span>
+                        <span class="combo-label">COMBO</span>
+                    </div>
+                    
+                    <!-- O Botão de Ataque Principal -->
+                    <button class="attack-btn" id="attackBtn">
+                        <span class="btn-glow"></span>
+                        <span class="btn-content">
+                            <i class="fa-solid fa-burst attack-icon"></i>
+                            <span class="btn-text">ATACAR</span>
+                        </span>
+                        <span class="btn-subtext">CLICK TO STRIKE</span>
+                    </button>
+                </div>
+
+                <!-- Barra de Especial (Mana / Ultimate) -->
+                <div class="special-card">
+                    <div class="special-info">
+                        <span>Poder Especial (Git Push)</span>
+                        <span id="specialPercent">0%</span>
+                    </div>
+                    <div class="special-bar-container">
+                        <div class="special-bar" id="specialBar" style="width: 0%;"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Coluna de Logs & Stats (Console na Tela) -->
+            <section class="console-section">
+                <div class="panel-header">
+                    <h3><i class="fa-solid fa-terminal"></i> Console de Rede & Eventos</h3>
+                    <span class="badge online">API Status: Simulação Online</span>
+                </div>
+                <div class="console-logs" id="consoleLogs">
+                    <div class="log-entry system">
+                        <span class="log-time">[13:12:00]</span>
+                        <span class="log-text">Iniciando sistema de combate... Pronto para receber comandos.</span>
+                    </div>
+                </div>
+                <!-- Estatísticas de Combate -->
+                <div class="stats-grid">
+                    <div class="stat-box">
+                        <span class="stat-label">Ataques Totais</span>
+                        <span class="stat-val" id="statHits">0</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-label">Dano Total</span>
+                        <span class="stat-val" id="statDmg">0</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-label">Dano Crítico</span>
+                        <span class="stat-val" id="statCrits">0%</span>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Rodapé do Desenvolvedor -->
+        <footer class="game-footer">
+            <p>Projeto de Desafio Frontend - Desenvolvido por Rafael</p>
+            <div class="footer-links">
+                <span class="git-status-indicator"><i class="fa-brands fa-git-alt"></i> Git Local Ativado</span>
+            </div>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
