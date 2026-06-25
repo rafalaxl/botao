@@ -21,6 +21,25 @@ const flashOverlay = document.getElementById('flashOverlay');
 const consoleLogs = document.getElementById('consoleLogs');
 const gameContainer = document.getElementById('gameContainer');
 
+// Função de Formatação de Números Gigantes (Estilo Clicker JRPG)
+function formatNumber(num) {
+    if (num === null || num === undefined || isNaN(num)) return "0";
+    if (num < 1000) return Math.ceil(num).toString();
+
+    const suffixes = [
+        "", "K", "M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc", "No", "Dc", 
+        "UDc", "DDc", "TDc", "QaDc", "QiDc", "SxDc", "SpDc", "OcDc", "NoDc", 
+        "Vg", "UVg", "DVg", "TVg", "QaVg", "QiVg", "SxVg", "SpVg", "OcVg", "NoVg"
+    ];
+
+    const exp = Math.floor(Math.log10(num) / 3);
+    const suffixIndex = Math.min(exp, suffixes.length - 1);
+    const shortVal = num / Math.pow(10, suffixIndex * 3);
+    
+    // Mostra até 2 casas decimais, remove zeros redundantes à direita
+    return shortVal.toFixed(2).replace(/\.00$/, "").replace(/(\.\d)0$/, "$1") + suffixes[suffixIndex];
+}
+
 // Elementos de estatísticas
 const statHits = document.getElementById('statHits');
 const statDmg = document.getElementById('statDmg');
@@ -279,13 +298,13 @@ function loadEnemy() {
     }
     
     bossHpBar.style.width = '100%';
-    bossHpText.innerText = `${Math.ceil(bossHp).toLocaleString()} / ${bossMaxHp.toLocaleString()}`;
+    bossHpText.innerText = `${formatNumber(bossHp)} / ${formatNumber(bossMaxHp)}`;
     
     // Atualiza o background da spritesheet do boss
     enemyCard.style.backgroundSize = stage.bgSize;
     enemyCard.style.backgroundPosition = stage.bgPos;
     
-    addLog(`Um novo inimigo surgiu: ${bossName} com ${bossMaxHp.toLocaleString()} HP!`, "system");
+    addLog(`Um novo inimigo surgiu: ${bossName} com ${formatNumber(bossMaxHp)} HP!`, "system");
     showBattleMessage(`${bossName} entrou na arena!`);
 }
 
@@ -305,7 +324,7 @@ function handleBossDamage(damage) {
         // Atualiza barras normais
         const hpPercent = (bossHp / bossMaxHp) * 100;
         bossHpBar.style.width = `${hpPercent}%`;
-        bossHpText.innerText = `${Math.ceil(bossHp).toLocaleString()} / ${bossMaxHp.toLocaleString()}`;
+        bossHpText.innerText = `${formatNumber(bossHp)} / ${formatNumber(bossMaxHp)}`;
     }
 }
 
@@ -382,7 +401,7 @@ function executeAttack(e) {
     
     // Atualiza estatísticas na tela
     statHits.innerText = totalHits;
-    statDmg.innerText = totalDamage.toLocaleString();
+    statDmg.innerText = formatNumber(totalDamage);
     const critRate = totalHits > 0 ? Math.round((critHits / totalHits) * 100) : 0;
     statCrits.innerText = `${critRate}%`;
 
@@ -392,22 +411,22 @@ function executeAttack(e) {
     if (isCrit) {
         playCritSound();
         playSpriteAnimation('crit');
-        showBattleMessage(`Rafael desfere ATAQUE CRÍTICO! -${damage} HP`);
-        addLog(`💥 ATAQUE CRÍTICO! Causou ${damage} de dano ao Boss!`, "crit");
+        showBattleMessage(`Rafael desfere ATAQUE CRÍTICO! -${formatNumber(damage)} HP`);
+        addLog(`💥 ATAQUE CRÍTICO! Causou ${formatNumber(damage)} de dano ao Boss!`, "crit");
     } else {
         playAttackSound();
         playSpriteAnimation('normal');
-        showBattleMessage(`Rafael ataca! -${damage} HP`);
-        addLog(`⚔️ Ataque físico causou ${damage} de dano.`, "attack");
+        showBattleMessage(`Rafael ataca! -${formatNumber(damage)} HP`);
+        addLog(`⚔️ Ataque físico causou ${formatNumber(damage)} de dano.`, "attack");
     }
 
     spawnParticles(clientX, clientY, dmgType);
-    spawnDamageNumber(clientX, clientY, damage, dmgType);
+    spawnDamageNumber(clientX, clientY, formatNumber(damage), dmgType);
     triggerScreenShake();
 
     // Simulação API
     const requestId = Math.random().toString(36).substring(2, 9);
-    addLog(`Enviando POST /api/attack - ID: ${requestId} - Dmg: ${damage}`, "network");
+    addLog(`Enviando POST /api/attack - ID: ${requestId} - Dmg: ${formatNumber(damage)}`, "network");
     setTimeout(() => {
         addLog(`POST /api/attack [200 OK] - ID: ${requestId} registrado no banco de dados.`, "network");
     }, 450);
@@ -449,14 +468,14 @@ function executeSpecial(e) {
 
     // Logs, Som e Sprite JRPG
     addLog("🚀 EXECUTANDO: git push -u origin main", "git");
-    addLog(`✨ Dano massivo! Especial causou ${specialDmg} de dano de push!`, "git");
-    showBattleMessage(`Rafael executa GIT PUSH! -${specialDmg} HP`);
+    addLog(`✨ Dano massivo! Especial causou ${formatNumber(specialDmg)} de dano de push!`, "git");
+    showBattleMessage(`Rafael executa GIT PUSH! -${formatNumber(specialDmg)} HP`);
 
     playSpecialSound();
     playSpriteAnimation('special');
     triggerFlash();
     spawnParticles(clientX, clientY, 'special');
-    spawnDamageNumber(clientX, clientY, specialDmg, 'special');
+    spawnDamageNumber(clientX, clientY, formatNumber(specialDmg), 'special');
     triggerScreenShake();
 
     // Reseta Especial MP
@@ -467,7 +486,7 @@ function executeSpecial(e) {
     totalHits++;
     totalDamage += specialDmg;
     statHits.innerText = totalHits;
-    statDmg.innerText = totalDamage.toLocaleString();
+    statDmg.innerText = formatNumber(totalDamage);
 
     // Simulação de Rede
     const requestId = Math.random().toString(36).substring(2, 9);
