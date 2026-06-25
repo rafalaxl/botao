@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RPG Combat Clicker | Botão de Ataque Animado</title>
-    <!-- Google Fonts: Inter e Orbitron para um ar de jogo moderno/cyberpunk -->
+    <title>JRPG Battle Clicker | Final Fantasy V Style</title>
+    <!-- Google Fonts: VT323 e Press Start 2P para o verdadeiro sentimento retro 8/16-bits -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
-    <!-- FontAwesome para ícones -->
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+    <!-- FontAwesome para ícones retro -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
 </head>
@@ -20,98 +20,114 @@
         <!-- Efeito de Flash de Impacto -->
         <div class="flash-overlay" id="flashOverlay"></div>
 
-        <!-- Cabeçalho / Título do Jogo -->
-        <header class="game-header">
-            <h1 class="logo"><i class="fa-solid fa-crosshairs text-primary"></i> CRITICAL<span>STRIKE</span></h1>
-            <p class="subtitle">Desafio do Botão de Ataque & Git Push</p>
-            <div class="audio-controls">
-                <button id="muteBtn" class="mute-btn"><i class="fa-solid fa-volume-high"></i> Som Ativo</button>
+        <!-- Tela de Batalha (Estilo JRPG Clássico) -->
+        <div class="battle-screen">
+            
+            <!-- Lado do Inimigo (Boss) -->
+            <div class="enemy-side">
+                <div class="enemy-sprite-container">
+                    <div class="enemy-glow"></div>
+                    <!-- Dragão pixel-art estilizado por CSS / Efeito Glow -->
+                    <div class="enemy-monster-card" id="enemyCard">
+                        <i class="fa-solid fa-dragon dragon-icon"></i>
+                    </div>
+                </div>
+                <!-- Nome e HP em cima do Boss (Estilo Retro) -->
+                <div class="retro-boss-info">
+                    <div class="boss-title">Lvl 99 - Conflict Dragon</div>
+                    <div class="boss-hp-box">
+                        <div class="boss-hp-bar" id="bossHpBar" style="width: 100%;"></div>
+                    </div>
+                    <div class="boss-hp-text" id="bossHpText">10,000 / 10,000</div>
+                </div>
             </div>
-        </header>
 
-        <main class="game-layout">
-            <!-- Coluna da Arena (Inimigo + Botão) -->
-            <section class="arena-section">
-                <!-- Status do Boss/Inimigo -->
-                <div class="boss-card">
-                    <div class="boss-info">
-                        <span class="boss-level">Lvl 99</span>
-                        <h2 class="boss-name">Dragão da Fragmentação (Git-Merge-Conflict)</h2>
-                    </div>
-                    <div class="hp-bar-container">
-                        <div class="hp-bar" id="bossHpBar" style="width: 100%;"></div>
-                        <span class="hp-text" id="bossHpText">10,000 / 10,000 HP</span>
-                    </div>
-                </div>
-
-                <!-- Arena de Impacto e Números Flutuantes -->
-                <div class="interactive-arena" id="interactiveArena">
-                    <!-- Combo Counter -->
-                    <div class="combo-counter" id="comboCounter">
-                        <span class="combo-number" id="comboNumber">0</span>
-                        <span class="combo-label">COMBO</span>
-                    </div>
-                    
-                    <!-- O Botão de Ataque Principal -->
-                    <button class="attack-btn" id="attackBtn">
-                        <span class="btn-glow"></span>
-                        <span class="btn-content">
-                            <i class="fa-solid fa-burst attack-icon"></i>
-                            <span class="btn-text">ATACAR</span>
-                        </span>
-                        <span class="btn-subtext">CLICK TO STRIKE</span>
-                    </button>
-                </div>
-
-                <!-- Barra de Especial (Mana / Ultimate) -->
-                <div class="special-card">
-                    <div class="special-info">
-                        <span>Poder Especial (Git Push)</span>
-                        <span id="specialPercent">0%</span>
-                    </div>
-                    <div class="special-bar-container">
-                        <div class="special-bar" id="specialBar" style="width: 0%;"></div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Coluna de Logs & Stats (Console na Tela) -->
-            <section class="console-section">
-                <div class="panel-header">
-                    <h3><i class="fa-solid fa-terminal"></i> Console de Rede & Eventos</h3>
-                    <span class="badge online">API Status: Simulação Online</span>
-                </div>
-                <div class="console-logs" id="consoleLogs">
-                    <div class="log-entry system">
-                        <span class="log-time">[13:12:00]</span>
-                        <span class="log-text">Iniciando sistema de combate... Pronto para receber comandos.</span>
-                    </div>
-                </div>
-                <!-- Estatísticas de Combate -->
-                <div class="stats-grid">
-                    <div class="stat-box">
-                        <span class="stat-label">Ataques Totais</span>
-                        <span class="stat-val" id="statHits">0</span>
-                    </div>
-                    <div class="stat-box">
-                        <span class="stat-label">Dano Total</span>
-                        <span class="stat-val" id="statDmg">0</span>
-                    </div>
-                    <div class="stat-box">
-                        <span class="stat-label">Dano Crítico</span>
-                        <span class="stat-val" id="statCrits">0%</span>
-                    </div>
-                </div>
-            </section>
-        </main>
-
-        <!-- Rodapé do Desenvolvedor -->
-        <footer class="game-footer">
-            <p>Projeto de Desafio Frontend - Desenvolvido por Rafael</p>
-            <div class="footer-links">
-                <span class="git-status-indicator"><i class="fa-brands fa-git-alt"></i> Git Local Ativado</span>
+            <!-- Lado do Herói (Sprite animado) -->
+            <div class="hero-side">
+                <!-- O Sprite de 9 quadros em 3x3 -->
+                <div class="character-sprite" id="characterSprite"></div>
+                <div class="hero-shadow"></div>
             </div>
-        </footer>
+
+            <!-- Combo Counter JRPG Style -->
+            <div class="combo-counter-retro" id="comboCounter">
+                <span id="comboNumber">0</span> HITS!
+            </div>
+            
+            <!-- Mensagem de Turno / Caixa de Diálogo do Jogo -->
+            <div class="battle-message-box" id="battleMessageBox">
+                Conflict Dragon apareceu! Pronto para a batalha.
+            </div>
+        </div>
+
+        <!-- Painel de Menus Azul (Estilo Final Fantasy V de SNES) -->
+        <div class="retro-menu-container">
+            
+            <!-- Coluna de Comandos (Ações) -->
+            <div class="menu-commands-box">
+                <ul class="command-list">
+                    <li class="command-item active" id="btnAtacar">
+                        <div class="pointing-hand"></div>
+                        <span>⚔️ ATACAR</span>
+                    </li>
+                    <li class="command-item locked" id="btnGitPush">
+                        <div class="pointing-hand"></div>
+                        <span>🔥 GIT PUSH</span>
+                    </li>
+                    <li class="command-item" id="muteBtn">
+                        <div class="pointing-hand"></div>
+                        <span id="muteText">🔊 SOM ATIVO</span>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Coluna de Status da Party -->
+            <div class="menu-status-box">
+                <table class="status-table">
+                    <thead>
+                        <tr>
+                            <th>NOME</th>
+                            <th>HP</th>
+                            <th>MP (Git)</th>
+                            <th>ATB</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="character-row">
+                            <td class="char-name">RAFAEL <span class="char-lvl">Lvl 99</span></td>
+                            <td class="char-hp">
+                                <span id="heroHpText">9999/9999</span>
+                                <div class="mini-bar-bg"><div class="mini-bar hp" style="width: 100%;"></div></div>
+                            </td>
+                            <td class="char-mp">
+                                <span id="specialPercent">0%</span>
+                                <div class="mini-bar-bg"><div class="mini-bar mp" id="specialBar" style="width: 0%;"></div></div>
+                            </td>
+                            <td class="char-atb">
+                                <div class="atb-bar-container">
+                                    <div class="atb-bar" id="atbBar"></div>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Console JRPG Terminal (Status de Rede) -->
+        <div class="retro-console-box">
+            <div class="console-title"><i class="fa-solid fa-code-branch"></i> NET-LOGS (API SIMULATION)</div>
+            <div class="console-lines" id="consoleLogs">
+                <div class="log-line">[SYSTEM] Iniciando FF5 Combat Engine... Pronto!</div>
+            </div>
+            
+            <!-- Rodapé com estatísticas retro -->
+            <div class="retro-stats-bar">
+                <span>DANOS T.: <strong id="statDmg">0</strong></span>
+                <span>ACERTOS: <strong id="statHits">0</strong></span>
+                <span>CRÍTICOS: <strong id="statCrits">0%</strong></span>
+            </div>
+        </div>
     </div>
 
     <script src="app.js"></script>

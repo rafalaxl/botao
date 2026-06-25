@@ -1,12 +1,22 @@
 // Elementos DOM
-const attackBtn = document.getElementById('attackBtn');
+const btnAtacar = document.getElementById('btnAtacar');
+const btnGitPush = document.getElementById('btnGitPush');
+const muteBtn = document.getElementById('muteBtn');
+const muteText = document.getElementById('muteText');
+
 const bossHpBar = document.getElementById('bossHpBar');
 const bossHpText = document.getElementById('bossHpText');
+const enemyCard = document.getElementById('enemyCard');
+
+const characterSprite = document.getElementById('characterSprite');
 const comboCounter = document.getElementById('comboCounter');
 const comboNumber = document.getElementById('comboNumber');
+const battleMessageBox = document.getElementById('battleMessageBox');
+
 const specialBar = document.getElementById('specialBar');
 const specialPercent = document.getElementById('specialPercent');
-const interactiveArena = document.getElementById('interactiveArena');
+const atbBar = document.getElementById('atbBar');
+
 const flashOverlay = document.getElementById('flashOverlay');
 const consoleLogs = document.getElementById('consoleLogs');
 const gameContainer = document.getElementById('gameContainer');
@@ -16,7 +26,7 @@ const statHits = document.getElementById('statHits');
 const statDmg = document.getElementById('statDmg');
 const statCrits = document.getElementById('statCrits');
 
-// Variáveis de Estado
+// Variáveis de Estado do Jogo
 let bossMaxHp = 10000;
 let bossHp = bossMaxHp;
 let combo = 0;
@@ -25,6 +35,32 @@ let specialProgress = 0;
 let totalHits = 0;
 let totalDamage = 0;
 let critHits = 0;
+
+// Estado do ATB (Active Time Battle)
+let atbProgress = 0;
+let atbReady = false;
+const ATB_AUTO_INCREMENT = 2; // Incremento automático a cada frame (~120ms)
+const ATB_CLICK_BOOST = 25;   // Boost ao clicar na tela quando não está pronto
+
+// Mapeamento dos Frames da Spritesheet (Coordenadas background-position em %)
+const spriteFrames = {
+    idle: [0, 0],
+    normal: [
+        [0, 0],    // Frame 1
+        [50, 0],   // Frame 2
+        [100, 0]   // Frame 3
+    ],
+    crit: [
+        [0, 50],   // Frame 4
+        [50, 50],  // Frame 5
+        [100, 50]  // Frame 6
+    ],
+    special: [
+        [0, 100],  // Frame 7
+        [50, 100], // Frame 8
+        [100, 100] // Frame 9
+    ]
+};
 
 // Configuração do Canvas de Partículas
 const canvas = document.getElementById('particleCanvas');
@@ -53,7 +89,7 @@ class Particle {
     update() {
         this.x += this.speedX;
         this.y += this.speedY;
-        this.speedY += 0.05; // gravidade leve
+        this.speedY += 0.05;
         this.alpha -= this.decay;
     }
 
@@ -87,7 +123,6 @@ function animateParticles() {
 }
 animateParticles();
 
-// Função para criar faíscas no Canvas
 function spawnParticles(x, y, type) {
     const rect = canvas.getBoundingClientRect();
     const canvasX = x - rect.left;
@@ -102,33 +137,61 @@ function spawnParticles(x, y, type) {
     }
 }
 
-// Helper para Logar no Console UI & DevConsole
+// Controladores do Sprite
+function setSpriteFrame(xPercent, yPercent) {
+    characterSprite.style.backgroundPosition = `${xPercent}% ${yPercent}%`;
+}
+
+let animTimeout = null;
+function playSpriteAnimation(type) {
+    if (animTimeout) clearTimeout(animTimeout);
+    
+    const frames = spriteFrames[type];
+    if (!frames) return;
+    
+    // Roda a sequência de 3 quadros
+    setSpriteFrame(frames[0][0], frames[0][1]);
+    
+    setTimeout(() => {
+        setSpriteFrame(frames[1][0], frames[1][1]);
+        
+        setTimeout(() => {
+            setSpriteFrame(frames[2][0], frames[2][1]);
+            
+            // Retorna ao frame idle
+            animTimeout = setTimeout(() => {
+                setSpriteFrame(spriteFrames.idle[0], spriteFrames.idle[1]);
+            }, 180);
+        }, 100);
+    }, 100);
+}
+
+// Logs no Console e UI
 function addLog(message, type = 'attack') {
     const now = new Date();
     const timeStr = `[${now.toTimeString().split(' ')[0]}]`;
     
-    // Log no console real do desenvolvedor
     const logPrefix = `[Game Engine][${type.toUpperCase()}]`;
-    if (type === 'git') console.log(`%c${logPrefix} ${message}`, 'color: #ff8a00; font-weight: bold;');
-    else if (type === 'network') console.log(`%c${logPrefix} ${message}`, 'color: #10b981;');
-    else if (type === 'crit') console.log(`%c${logPrefix} ${message}`, 'color: #ffd700; font-weight: bold;');
-    else console.log(`${logPrefix} ${message}`);
+    console.log(`%c${logPrefix} ${message}`, 'font-family: monospace;');
 
-    // Log na UI do Jogo
     const logEntry = document.createElement('div');
-    logEntry.className = `log-entry ${type}`;
-    logEntry.innerHTML = `<span class="log-time">${timeStr}</span> <span class="log-text">${message}</span>`;
+    logEntry.className = `log-line ${type}`;
+    logEntry.innerHTML = `<span class="log-time">${timeStr}</span> ${message}`;
     consoleLogs.appendChild(logEntry);
     
-    // Auto-scroll
     consoleLogs.scrollTop = consoleLogs.scrollHeight;
 }
 
-// Função para criar número de dano flutuante
+// Mensagens JRPG na caixa de diálogo
+function showBattleMessage(text, duration = 2000) {
+    battleMessageBox.innerText = text;
+}
+
+// Números de Dano Retro
 function spawnDamageNumber(x, y, damage, type) {
-    const rect = interactiveArena.getBoundingClientRect();
+    const rect = gameContainer.getBoundingClientRect();
     const localX = x - rect.left;
-    const localY = y - rect.top;
+    const localY = y - rect.top - 80; // Ajusta altura
 
     const dmgEl = document.createElement('div');
     dmgEl.className = `damage-number ${type}`;
@@ -140,15 +203,13 @@ function spawnDamageNumber(x, y, damage, type) {
     if (type === 'special') text = `GIT PUSH! ${damage}`;
     dmgEl.innerText = text;
 
-    interactiveArena.appendChild(dmgEl);
+    gameContainer.appendChild(dmgEl);
 
-    // Remove após animação
     setTimeout(() => {
         dmgEl.remove();
-    }, 800);
+    }, 700);
 }
 
-// Executa Efeito de Tremer (Screen Shake)
 function triggerScreenShake() {
     gameContainer.classList.add('shake');
     setTimeout(() => {
@@ -156,184 +217,208 @@ function triggerScreenShake() {
     }, 150);
 }
 
-// Flash na Tela
 function triggerFlash() {
-    flashOverlay.style.opacity = '0.7';
+    flashOverlay.style.opacity = '0.6';
     setTimeout(() => {
         flashOverlay.style.opacity = '0';
     }, 100);
 }
 
-// Incrementa o Combo
+// Sistema de Combo
 function incrementCombo() {
     combo++;
     comboNumber.innerText = combo;
     comboCounter.classList.add('active');
     
-    // Animação de pop no combo
-    comboNumber.style.transform = 'scale(1.3)';
-    setTimeout(() => {
-        comboNumber.style.transform = 'scale(1)';
-    }, 100);
-
     clearTimeout(comboTimer);
     comboTimer = setTimeout(() => {
-        decayCombo();
+        combo = 0;
+        comboCounter.classList.remove('active');
     }, 1800);
 }
 
-// Reseta o Combo
-function decayCombo() {
-    combo = 0;
-    comboCounter.classList.remove('active');
-    addLog("Combo interrompido!", "system");
+// Sistema ATB Automático
+function updateATB() {
+    if (!atbReady) {
+        atbProgress += ATB_AUTO_INCREMENT;
+        if (atbProgress >= 100) {
+            atbProgress = 100;
+            atbReady = true;
+            atbBar.classList.add('ready');
+            btnAtacar.classList.add('active');
+            if (specialProgress === 100) {
+                btnGitPush.classList.remove('locked');
+                btnGitPush.classList.add('active');
+            }
+        }
+        atbBar.style.width = `${atbProgress}%`;
+    }
 }
+// Roda o loop do ATB
+setInterval(updateATB, 60);
 
-// Atualiza Estatísticas Gerais
-function updateStats() {
-    statHits.innerText = totalHits;
-    statDmg.innerText = totalDamage.toLocaleString();
-    const critRate = totalHits > 0 ? Math.round((critHits / totalHits) * 100) : 0;
-    statCrits.innerText = `${critRate}%`;
-}
-
-// Disparar requisição de API (Simulada)
-function simulateApiRequest(damage, isCrit, currentCombo) {
-    const requestId = Math.random().toString(36).substring(2, 9);
-    addLog(`Enviando POST /api/attack - ID: ${requestId} - Dmg: ${damage} - Combo: ${currentCombo}`, "network");
-    
-    // Simula resposta de rede
-    setTimeout(() => {
-        addLog(`POST /api/attack [200 OK] - ID: ${requestId} registrado no banco de dados.`, "network");
-    }, 450);
-}
-
-// Lógica de Ataque Principal
+// Executa Ataque Físico
 function executeAttack(e) {
-    // Pega as coordenadas exatas do clique
-    const clientX = e.clientX || e.touches[0].clientX;
-    const clientY = e.clientY || e.touches[0].clientY;
+    // Coordenadas de clique para partículas/números
+    const clientX = e.clientX || window.innerWidth / 2;
+    const clientY = e.clientY || window.innerHeight / 2 - 100;
+
+    // Se o ATB não estiver pronto, dar boost de carregamento (Hack & Slash clicker!)
+    if (!atbReady) {
+        atbProgress += ATB_CLICK_BOOST;
+        if (atbProgress >= 100) {
+            atbProgress = 100;
+            atbReady = true;
+            atbBar.classList.add('ready');
+            btnAtacar.classList.add('active');
+            playAttackSound(); // feedback sonoro leve de carga
+        }
+        atbBar.style.width = `${atbProgress}%`;
+        
+        // Spawn faíscas rápidas azuis de carga
+        spawnParticles(clientX, clientY, 'special');
+        return;
+    }
+
+    // Se o ATB está pronto, consome e ataca!
+    atbProgress = 0;
+    atbReady = false;
+    atbBar.classList.remove('ready');
+    btnAtacar.classList.remove('active');
 
     totalHits++;
 
-    // Lógica de Dano e Crítico
-    const isCrit = Math.random() < 0.25; // 25% de chance de crítico
-    let damage = Math.floor(Math.random() * 80) + 100; // Dano base 100-180
+    const isCrit = Math.random() < 0.25;
+    let damage = Math.floor(Math.random() * 80) + 120; // 120-200 base
     
     if (isCrit) {
         damage = Math.floor(damage * 2.2);
         critHits++;
     }
 
-    // Bônus de Combo
     if (combo > 1) {
-        damage = Math.floor(damage * (1 + (combo * 0.05))); // 5% a mais por hit
+        damage = Math.floor(damage * (1 + (combo * 0.05)));
     }
 
-    // Aplica o dano ao Boss
+    // Deduz HP do Boss
     bossHp -= damage;
     if (bossHp <= 0) {
         bossHp = 0;
-        addLog("⚔️ O Dragão da Fragmentação foi derrotado! Renascendo...", "git");
+        addLog("⚔️ Conflict Dragon derrotado! Renascendo...", "git");
+        showBattleMessage("Conflict Dragon foi derrotado!");
+        triggerFlash();
         setTimeout(() => {
             bossHp = bossMaxHp;
             bossHpBar.style.width = '100%';
-            bossHpText.innerText = `${bossMaxHp.toLocaleString()} / ${bossMaxHp.toLocaleString()} HP`;
+            bossHpText.innerText = `${bossMaxHp.toLocaleString()} / ${bossMaxHp.toLocaleString()}`;
+            showBattleMessage("Conflict Dragon ressuscitou!");
             addLog("Um novo Dragão surgiu na arena!", "system");
         }, 1500);
     }
 
-    // Atualiza HP na tela
+    // Atualiza barras
     const hpPercent = (bossHp / bossMaxHp) * 100;
     bossHpBar.style.width = `${hpPercent}%`;
-    bossHpText.innerText = `${Math.ceil(bossHp).toLocaleString()} / ${bossMaxHp.toLocaleString()} HP`;
+    bossHpText.innerText = `${Math.ceil(bossHp).toLocaleString()} / ${bossMaxHp.toLocaleString()}`;
 
-    // Incrementa Combo e Estatísticas
     incrementCombo();
     totalDamage += damage;
-    updateStats();
-
-    // Tipo de Dano
-    const dmgType = isCrit ? 'crit' : 'normal';
     
-    // Tocar Som
+    // Atualiza estatísticas na tela
+    statHits.innerText = totalHits;
+    statDmg.innerText = totalDamage.toLocaleString();
+    const critRate = totalHits > 0 ? Math.round((critHits / totalHits) * 100) : 0;
+    statCrits.innerText = `${critRate}%`;
+
+    const dmgType = isCrit ? 'crit' : 'normal';
+
+    // Sons e animações correspondentes
     if (isCrit) {
         playCritSound();
-    } else {
-        playAttackSound();
-    }
-    
-    // Logs de Combate
-    if (isCrit) {
+        playSpriteAnimation('crit');
+        showBattleMessage(`Rafael desfere ATAQUE CRÍTICO! -${damage} HP`);
         addLog(`💥 ATAQUE CRÍTICO! Causou ${damage} de dano ao Boss!`, "crit");
     } else {
+        playAttackSound();
+        playSpriteAnimation('normal');
+        showBattleMessage(`Rafael ataca! -${damage} HP`);
         addLog(`⚔️ Ataque físico causou ${damage} de dano.`, "attack");
     }
 
-    // Spawn de Partículas e Animação de Dano
     spawnParticles(clientX, clientY, dmgType);
     spawnDamageNumber(clientX, clientY, damage, dmgType);
     triggerScreenShake();
 
-    // Simulação da Requisição
-    simulateApiRequest(damage, isCrit, combo);
+    // Simulação API
+    const requestId = Math.random().toString(36).substring(2, 9);
+    addLog(`Enviando POST /api/attack - ID: ${requestId} - Dmg: ${damage}`, "network");
+    setTimeout(() => {
+        addLog(`POST /api/attack [200 OK] - ID: ${requestId} registrado no banco de dados.`, "network");
+    }, 450);
 
-    // Carrega o Especial (Mana / Git Push)
+    // Carrega Barra Especial MP
     if (specialProgress < 100) {
-        specialProgress += 5; // 5% por hit
+        specialProgress += 10; // 10% por ataque
         if (specialProgress > 100) specialProgress = 100;
         
         specialBar.style.width = `${specialProgress}%`;
         specialPercent.innerText = `${specialProgress}%`;
 
-        // Se atingiu o máximo
         if (specialProgress === 100) {
-            specialBar.style.background = 'linear-gradient(90deg, #00ffff, #00ff66)';
-            specialBar.style.boxShadow = '0 0 15px rgba(0, 255, 102, 0.8)';
-            addLog("🔥 PODER ESPECIAL PRONTO! Dê um clique duplo rápido no Botão de Ataque para descarregar o GIT PUSH!", "git");
+            btnGitPush.classList.remove('locked');
+            btnGitPush.classList.add('active');
+            addLog("🔥 GIT PUSH PRONTO! Selecione o comando especial!", "git");
+            showBattleMessage("ESPECIAL GIT PUSH DISPONÍVEL!");
         }
     }
 }
 
-// Lógica do Especial (Double Click no Botão)
+// Executa Comando Especial Git Push
 function executeSpecial(e) {
-    if (specialProgress < 100) return;
+    if (specialProgress < 100 || !atbReady) return;
 
-    const clientX = e.clientX || e.touches[0].clientX;
-    const clientY = e.clientY || e.touches[0].clientY;
+    const clientX = e.clientX || window.innerWidth / 2;
+    const clientY = e.clientY || window.innerHeight / 2 - 100;
 
-    // Grande Dano Especial
-    const specialDmg = 2500;
+    // Reseta ATB e Status
+    atbProgress = 0;
+    atbReady = false;
+    atbBar.classList.remove('ready');
+    btnAtacar.classList.remove('active');
+    btnGitPush.classList.add('locked');
+    btnGitPush.classList.remove('active');
+
+    const specialDmg = 3500;
     bossHp -= specialDmg;
     if (bossHp < 0) bossHp = 0;
 
-    // Atualiza HP na tela
     const hpPercent = (bossHp / bossMaxHp) * 100;
     bossHpBar.style.width = `${hpPercent}%`;
-    bossHpText.innerText = `${Math.ceil(bossHp).toLocaleString()} / ${bossMaxHp.toLocaleString()} HP`;
+    bossHpText.innerText = `${Math.ceil(bossHp).toLocaleString()} / ${bossMaxHp.toLocaleString()}`;
 
-    // Logs e Efeitos Visuais
+    // Logs, Som e Sprite JRPG
     addLog("🚀 EXECUTANDO: git push -u origin main", "git");
     addLog(`✨ Dano massivo! Especial causou ${specialDmg} de dano de push!`, "git");
-    
+    showBattleMessage(`Rafael executa GIT PUSH! -${specialDmg} HP`);
+
     playSpecialSound();
+    playSpriteAnimation('special');
     triggerFlash();
     spawnParticles(clientX, clientY, 'special');
     spawnDamageNumber(clientX, clientY, specialDmg, 'special');
     triggerScreenShake();
-    
-    // Reseta barra especial
+
+    // Reseta Especial MP
     specialProgress = 0;
     specialBar.style.width = '0%';
-    specialBar.style.background = 'linear-gradient(90deg, var(--accent), #00bcff)';
-    specialBar.style.boxShadow = '0 0 8px var(--accent-glow)';
     specialPercent.innerText = '0%';
 
     totalHits++;
     totalDamage += specialDmg;
-    updateStats();
+    statHits.innerText = totalHits;
+    statDmg.innerText = totalDamage.toLocaleString();
 
-    // Simulação da Requisição do Push
+    // Simulação de Rede
     const requestId = Math.random().toString(36).substring(2, 9);
     addLog(`Enviando POST /api/push - ID: ${requestId} - Push Payload: {branch: 'main'}`, "network");
     setTimeout(() => {
@@ -341,31 +426,10 @@ function executeSpecial(e) {
     }, 700);
 }
 
-// Event Listeners
-attackBtn.addEventListener('click', (e) => {
-    // Se o Especial estiver pronto, aguarda o duplo clique ou ativa com cliques adicionais
-    executeAttack(e);
-});
-
-attackBtn.addEventListener('dblclick', (e) => {
-    if (specialProgress === 100) {
-        executeSpecial(e);
-    }
-});
-
-// Suporte para Mobile/Touch
-attackBtn.addEventListener('touchstart', (e) => {
-    e.preventDefault();
-    executeAttack(e);
-}, { passive: false });
-
 // --- SISTEMA DE ÁUDIO WEB (Sintetizador Web Audio API) ---
 let audioCtx = null;
 let isMuted = false;
 
-const muteBtn = document.getElementById('muteBtn');
-
-// Inicializa ou recupera o contexto de áudio
 function getAudioContext() {
     if (!audioCtx) {
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -381,103 +445,95 @@ muteBtn.addEventListener('click', () => {
     isMuted = !isMuted;
     if (isMuted) {
         muteBtn.classList.add('muted');
-        muteBtn.innerHTML = '<i class="fa-solid fa-volume-xmark"></i> Mudo';
+        muteText.innerText = '🔇 SOM DESATIV.';
         addLog("Sons desativados.", "system");
     } else {
         muteBtn.classList.remove('muted');
-        muteBtn.innerHTML = '<i class="fa-solid fa-volume-high"></i> Som Ativo';
+        muteText.innerText = '🔊 SOM ATIVO';
         getAudioContext();
         addLog("Sons ativados.", "system");
     }
 });
 
-// Som de Ataque Normal (Metal Slash)
 function playAttackSound() {
     if (isMuted) return;
     try {
         const ctx = getAudioContext();
         const time = ctx.currentTime;
-        
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         
         osc.type = 'triangle';
-        osc.frequency.setValueAtTime(800, time);
-        osc.frequency.exponentialRampToValueAtTime(150, time + 0.12);
+        osc.frequency.setValueAtTime(600, time);
+        osc.frequency.exponentialRampToValueAtTime(100, time + 0.15);
         
         gain.gain.setValueAtTime(0.15, time);
-        gain.gain.exponentialRampToValueAtTime(0.01, time + 0.12);
+        gain.gain.exponentialRampToValueAtTime(0.01, time + 0.15);
         
         osc.connect(gain);
         gain.connect(ctx.destination);
         
         osc.start(time);
-        osc.stop(time + 0.13);
+        osc.stop(time + 0.16);
     } catch(e) {
-        console.error("Erro ao tocar som de ataque:", e);
+        console.error(e);
     }
 }
 
-// Som de Ataque Crítico (Metal Hit + Laser Beam)
 function playCritSound() {
     if (isMuted) return;
     try {
         const ctx = getAudioContext();
         const time = ctx.currentTime;
         
-        // Canal 1: Frequência alta (impacto afiado)
         const osc1 = ctx.createOscillator();
         const gain1 = ctx.createGain();
         osc1.type = 'sawtooth';
-        osc1.frequency.setValueAtTime(1500, time);
-        osc1.frequency.exponentialRampToValueAtTime(100, time + 0.25);
+        osc1.frequency.setValueAtTime(1200, time);
+        osc1.frequency.exponentialRampToValueAtTime(80, time + 0.28);
         gain1.gain.setValueAtTime(0.2, time);
-        gain1.gain.exponentialRampToValueAtTime(0.01, time + 0.25);
+        gain1.gain.exponentialRampToValueAtTime(0.01, time + 0.28);
         osc1.connect(gain1);
         gain1.connect(ctx.destination);
         
-        // Canal 2: Sub-grave (explosão)
         const osc2 = ctx.createOscillator();
         const gain2 = ctx.createGain();
         osc2.type = 'sine';
-        osc2.frequency.setValueAtTime(90, time);
-        osc2.frequency.exponentialRampToValueAtTime(40, time + 0.3);
+        osc2.frequency.setValueAtTime(110, time);
+        osc2.frequency.exponentialRampToValueAtTime(30, time + 0.35);
         gain2.gain.setValueAtTime(0.3, time);
-        gain2.gain.exponentialRampToValueAtTime(0.01, time + 0.3);
+        gain2.gain.exponentialRampToValueAtTime(0.01, time + 0.35);
         osc2.connect(gain2);
         gain2.connect(ctx.destination);
         
         osc1.start(time);
         osc2.start(time);
-        osc1.stop(time + 0.26);
-        osc2.stop(time + 0.31);
+        osc1.stop(time + 0.29);
+        osc2.stop(time + 0.36);
     } catch(e) {
-        console.error("Erro ao tocar som crítico:", e);
+        console.error(e);
     }
 }
 
-// Som de Especial Git Push (Charging + Cyber Blast)
 function playSpecialSound() {
     if (isMuted) return;
     try {
         const ctx = getAudioContext();
         const time = ctx.currentTime;
         
-        // 1. Charge Sound (subida rápida de pitch)
         const oscCharge = ctx.createOscillator();
         const gainCharge = ctx.createGain();
         oscCharge.type = 'sawtooth';
-        oscCharge.frequency.setValueAtTime(100, time);
-        oscCharge.frequency.exponentialRampToValueAtTime(1800, time + 0.35);
+        oscCharge.frequency.setValueAtTime(120, time);
+        oscCharge.frequency.exponentialRampToValueAtTime(2000, time + 0.4);
         gainCharge.gain.setValueAtTime(0.01, time);
-        gainCharge.gain.linearRampToValueAtTime(0.12, time + 0.25);
-        gainCharge.gain.exponentialRampToValueAtTime(0.01, time + 0.35);
+        gainCharge.gain.linearRampToValueAtTime(0.15, time + 0.3);
+        gainCharge.gain.exponentialRampToValueAtTime(0.01, time + 0.4);
         oscCharge.connect(gainCharge);
         gainCharge.connect(ctx.destination);
         oscCharge.start(time);
-        oscCharge.stop(time + 0.36);
+        oscCharge.stop(time + 0.41);
         
-        // 2. Blast Sound (explosão gigante posterior)
         setTimeout(() => {
             if (isMuted) return;
             try {
@@ -487,23 +543,48 @@ function playSpecialSound() {
                 const gainBlast = blastCtx.createGain();
                 
                 oscBlast.type = 'square';
-                oscBlast.frequency.setValueAtTime(200, blastTime);
-                oscBlast.frequency.exponentialRampToValueAtTime(30, blastTime + 0.6);
+                oscBlast.frequency.setValueAtTime(250, blastTime);
+                oscBlast.frequency.exponentialRampToValueAtTime(20, blastTime + 0.7);
                 
                 gainBlast.gain.setValueAtTime(0.4, blastTime);
-                gainBlast.gain.exponentialRampToValueAtTime(0.01, blastTime + 0.6);
+                gainBlast.gain.exponentialRampToValueAtTime(0.01, blastTime + 0.7);
                 
                 oscBlast.connect(gainBlast);
                 gainBlast.connect(blastCtx.destination);
                 
                 oscBlast.start(blastTime);
-                oscBlast.stop(blastTime + 0.61);
+                oscBlast.stop(blastTime + 0.71);
             } catch(err) {
                 console.error(err);
             }
-        }, 250);
+        }, 300);
     } catch(e) {
-        console.error("Erro ao tocar som especial:", e);
+        console.error(e);
     }
 }
 
+// Event Listeners
+btnAtacar.addEventListener('click', executeAttack);
+btnGitPush.addEventListener('click', executeSpecial);
+
+// Clicar na tela de batalha/boss também ataca ou ajuda a carregar ATB!
+enemyCard.addEventListener('click', (e) => {
+    if (atbReady) {
+        executeAttack(e);
+    } else {
+        // Boost no ATB se clicar repetidamente!
+        const clientX = e.clientX;
+        const clientY = e.clientY;
+        
+        atbProgress += ATB_CLICK_BOOST;
+        if (atbProgress >= 100) {
+            atbProgress = 100;
+            atbReady = true;
+            atbBar.classList.add('ready');
+            btnAtacar.classList.add('active');
+            playAttackSound();
+        }
+        atbBar.style.width = `${atbProgress}%`;
+        spawnParticles(clientX, clientY, 'special');
+    }
+});
