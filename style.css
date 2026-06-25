@@ -495,3 +495,41 @@ body {
     color: var(--success);
     font-weight: bold;
 }
+
+/* Controles de Áudio */
+.audio-controls {
+    margin-top: 0.8rem;
+    display: flex;
+    justify-content: center;
+}
+
+.mute-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--panel-border);
+    color: var(--text-muted);
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.75rem;
+    font-weight: bold;
+    padding: 0.4rem 1rem;
+    border-radius: 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s ease;
+}
+
+.mute-btn:hover {
+    background: rgba(255, 46, 147, 0.1);
+    color: var(--primary);
+    border-color: var(--primary-glow);
+    box-shadow: 0 0 10px rgba(255, 46, 147, 0.2);
+}
+
+.mute-btn.muted {
+    background: rgba(0, 0, 0, 0.3);
+    color: var(--text-muted);
+    border-color: rgba(255, 255, 255, 0.05);
+    opacity: 0.6;
+}
+

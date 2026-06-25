@@ -256,6 +256,13 @@ function executeAttack(e) {
     // Tipo de Dano
     const dmgType = isCrit ? 'crit' : 'normal';
     
+    // Tocar Som
+    if (isCrit) {
+        playCritSound();
+    } else {
+        playAttackSound();
+    }
+    
     // Logs de Combate
     if (isCrit) {
         addLog(`💥 ATAQUE CRÍTICO! Causou ${damage} de dano ao Boss!`, "crit");
@@ -309,6 +316,7 @@ function executeSpecial(e) {
     addLog("🚀 EXECUTANDO: git push -u origin main", "git");
     addLog(`✨ Dano massivo! Especial causou ${specialDmg} de dano de push!`, "git");
     
+    playSpecialSound();
     triggerFlash();
     spawnParticles(clientX, clientY, 'special');
     spawnDamageNumber(clientX, clientY, specialDmg, 'special');
@@ -350,3 +358,152 @@ attackBtn.addEventListener('touchstart', (e) => {
     e.preventDefault();
     executeAttack(e);
 }, { passive: false });
+
+// --- SISTEMA DE ÁUDIO WEB (Sintetizador Web Audio API) ---
+let audioCtx = null;
+let isMuted = false;
+
+const muteBtn = document.getElementById('muteBtn');
+
+// Inicializa ou recupera o contexto de áudio
+function getAudioContext() {
+    if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+    }
+    return audioCtx;
+}
+
+// Alternar mute
+muteBtn.addEventListener('click', () => {
+    isMuted = !isMuted;
+    if (isMuted) {
+        muteBtn.classList.add('muted');
+        muteBtn.innerHTML = '<i class="fa-solid fa-volume-xmark"></i> Mudo';
+        addLog("Sons desativados.", "system");
+    } else {
+        muteBtn.classList.remove('muted');
+        muteBtn.innerHTML = '<i class="fa-solid fa-volume-high"></i> Som Ativo';
+        getAudioContext();
+        addLog("Sons ativados.", "system");
+    }
+});
+
+// Som de Ataque Normal (Metal Slash)
+function playAttackSound() {
+    if (isMuted) return;
+    try {
+        const ctx = getAudioContext();
+        const time = ctx.currentTime;
+        
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(800, time);
+        osc.frequency.exponentialRampToValueAtTime(150, time + 0.12);
+        
+        gain.gain.setValueAtTime(0.15, time);
+        gain.gain.exponentialRampToValueAtTime(0.01, time + 0.12);
+        
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        
+        osc.start(time);
+        osc.stop(time + 0.13);
+    } catch(e) {
+        console.error("Erro ao tocar som de ataque:", e);
+    }
+}
+
+// Som de Ataque Crítico (Metal Hit + Laser Beam)
+function playCritSound() {
+    if (isMuted) return;
+    try {
+        const ctx = getAudioContext();
+        const time = ctx.currentTime;
+        
+        // Canal 1: Frequência alta (impacto afiado)
+        const osc1 = ctx.createOscillator();
+        const gain1 = ctx.createGain();
+        osc1.type = 'sawtooth';
+        osc1.frequency.setValueAtTime(1500, time);
+        osc1.frequency.exponentialRampToValueAtTime(100, time + 0.25);
+        gain1.gain.setValueAtTime(0.2, time);
+        gain1.gain.exponentialRampToValueAtTime(0.01, time + 0.25);
+        osc1.connect(gain1);
+        gain1.connect(ctx.destination);
+        
+        // Canal 2: Sub-grave (explosão)
+        const osc2 = ctx.createOscillator();
+        const gain2 = ctx.createGain();
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(90, time);
+        osc2.frequency.exponentialRampToValueAtTime(40, time + 0.3);
+        gain2.gain.setValueAtTime(0.3, time);
+        gain2.gain.exponentialRampToValueAtTime(0.01, time + 0.3);
+        osc2.connect(gain2);
+        gain2.connect(ctx.destination);
+        
+        osc1.start(time);
+        osc2.start(time);
+        osc1.stop(time + 0.26);
+        osc2.stop(time + 0.31);
+    } catch(e) {
+        console.error("Erro ao tocar som crítico:", e);
+    }
+}
+
+// Som de Especial Git Push (Charging + Cyber Blast)
+function playSpecialSound() {
+    if (isMuted) return;
+    try {
+        const ctx = getAudioContext();
+        const time = ctx.currentTime;
+        
+        // 1. Charge Sound (subida rápida de pitch)
+        const oscCharge = ctx.createOscillator();
+        const gainCharge = ctx.createGain();
+        oscCharge.type = 'sawtooth';
+        oscCharge.frequency.setValueAtTime(100, time);
+        oscCharge.frequency.exponentialRampToValueAtTime(1800, time + 0.35);
+        gainCharge.gain.setValueAtTime(0.01, time);
+        gainCharge.gain.linearRampToValueAtTime(0.12, time + 0.25);
+        gainCharge.gain.exponentialRampToValueAtTime(0.01, time + 0.35);
+        oscCharge.connect(gainCharge);
+        gainCharge.connect(ctx.destination);
+        oscCharge.start(time);
+        oscCharge.stop(time + 0.36);
+        
+        // 2. Blast Sound (explosão gigante posterior)
+        setTimeout(() => {
+            if (isMuted) return;
+            try {
+                const blastCtx = getAudioContext();
+                const blastTime = blastCtx.currentTime;
+                const oscBlast = blastCtx.createOscillator();
+                const gainBlast = blastCtx.createGain();
+                
+                oscBlast.type = 'square';
+                oscBlast.frequency.setValueAtTime(200, blastTime);
+                oscBlast.frequency.exponentialRampToValueAtTime(30, blastTime + 0.6);
+                
+                gainBlast.gain.setValueAtTime(0.4, blastTime);
+                gainBlast.gain.exponentialRampToValueAtTime(0.01, blastTime + 0.6);
+                
+                oscBlast.connect(gainBlast);
+                gainBlast.connect(blastCtx.destination);
+                
+                oscBlast.start(blastTime);
+                oscBlast.stop(blastTime + 0.61);
+            } catch(err) {
+                console.error(err);
+            }
+        }, 250);
+    } catch(e) {
+        console.error("Erro ao tocar som especial:", e);
+    }
+}
+
